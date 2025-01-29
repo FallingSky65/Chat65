@@ -114,6 +114,8 @@ int main(int argc, char *argv[])
         return 2;
     }
 
+    system("clear");
+
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
             s, sizeof s);
     printf("client: connecting to %s\n", s);
@@ -128,6 +130,8 @@ int main(int argc, char *argv[])
         if (send(server_socket, name, namelen+1, 0) == -1)
             perror("send");
     }
+
+    system("clear");
 
     int arg = server_socket;
 

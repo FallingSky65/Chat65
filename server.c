@@ -166,6 +166,7 @@ int main(void) {
         exit(1);
     }
 
+    system("clear");
     printf("server: waiting for connections...\n");
 
     while (1) {
