@@ -25,6 +25,10 @@ struct Client {
 
 struct Client* clients = NULL;
 
+char history[MSGHISTORY][NAMESIZE+MAXDATASIZE];
+int historyIndex = 0;
+pthread_mutex_t historyLock;
+
 void sigchld_handler(int s)
 {
     // waitpid() might overwrite errno, so we save and restore it:
