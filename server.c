@@ -85,7 +85,7 @@ void* recv_data(void* arg) {
         }
         if (len == 0) break;
         msg[len] = '\0';
-        printf("%s: %s\n", client->name, msg);
+        printf("%s: %s", client->name, msg);
 
         pthread_mutex_lock(&historyLock);
 
