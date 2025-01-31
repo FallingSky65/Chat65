@@ -32,14 +32,18 @@ void* send_data(void* arg) {
     while (1){
         printf("%s: ", name);
         if (fgets(buf, MAXDATASIZE-1, stdin) == NULL) continue;
-        len = strcspn(buf, "\n");
+        len = strlen(buf);
+        if (len == 1) {
+            continue;
+        }
+        //len = strcspn(buf, "\n");
         buf[len] = '\0';
 
         if (buf[0] == '\\') {
             if (strcmp(buf, "\\exit") == 0) break;
         }
 
-        if (send(server_socket, buf, len+1, 0) == -1)
+        if (send(server_socket, buf, len, 0) == -1)
             perror("send");
     }
     done = 1;
@@ -53,14 +57,30 @@ void* recv_data(void* arg) {
     int len;
     int server_socket = *(int*)arg;
     while (1){
-        if ((len = recv(server_socket, buf, MAXDATASIZE-1, 0)) == -1) {
+        len = recv(server_socket, buf, NAMESIZE+MAXDATASIZE-1, 0);
+        if (len == -1) {
             if (done == 1) break;
             perror("recv");
             exit(1);
         }
         if (len == 0) break;
+
+        char msg[MAXDATASIZE];
+        int msglen = 0;
+        for (int i = 0; i < len; i++) {
+            if (buf[i] == '\n') {
+                msg[msglen] = '\0';
+                printf("\r%s: %s\n%s: ", msg, msg+NAMESIZE, name);
+                //printf("msg: %s\n", msg);
+                msglen = 0;
+            } else {
+                msg[msglen++] = buf[i];
+            }
+        }
+
         buf[len] = '\0';
-        printf("\r%s: %s\n%s: ", buf, buf+NAMESIZE, name);
+        //printf("\n got a msg\n");
+        //printf("\r%s: %s%s: ", buf, buf+NAMESIZE, name);
         fflush(stdout);
     }
     close(server_socket);

@@ -19,13 +19,21 @@ struct Client {
     int client_socket;
     char name[NAMESIZE];
     int namelen;
+    int historyIndex;
+
     struct Client* prev;
     struct Client* next;
 };
 
 struct Client* clients = NULL;
 
-char history[MSGHISTORY][NAMESIZE+MAXDATASIZE];
+struct Message {
+    struct Client* sender;
+    char contents[MAXDATASIZE];
+    int len;
+};
+
+struct Message history[MSGHISTORY];
 int historyIndex = 0;
 pthread_mutex_t historyLock;
 
@@ -49,27 +57,51 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void* recv_data(void* arg) {
+void send_data(void) {
     char buf[NAMESIZE+MAXDATASIZE];
+    for (struct Client* c = clients; c != NULL; c = c->next) {
+        for (int i = c->historyIndex; i < historyIndex; i++) {
+            printf("debug: c = %s; msg = %s\n", c->name, history[i].contents);
+            if (history[i].sender == c) continue;
+            //memset(buf, '\0', sizeof(buf));
+            strncpy(buf, history[i].sender->name, NAMESIZE);
+            strncpy(buf+NAMESIZE, history[i].contents, MAXDATASIZE);
+            if (send(c->client_socket, buf, NAMESIZE+history[i].len, 0) <= 0)
+                perror("send");
+        }
+        c->historyIndex = historyIndex;
+    }
+}
+
+void* recv_data(void* arg) {
+    char msg[MAXDATASIZE];
     int len;
     struct Client* client = (struct Client*)arg;
-    while (1){
-        len = recv(client->client_socket, buf+NAMESIZE, MAXDATASIZE-1, 0);
+    while (1) {
+        len = recv(client->client_socket, msg, MAXDATASIZE-1, 0);
         if (len == -1) {
             perror("recv");
             exit(1);
         }
         if (len == 0) break;
-        buf[NAMESIZE+len] = '\0';
-        strncpy(buf, client->name, sizeof(client->name));
-        printf("%s: %s\n", client->name, buf+NAMESIZE);
+        msg[len] = '\0';
+        printf("%s: %s\n", client->name, msg);
 
-        for (struct Client* c = clients; c != NULL; c = c->next) {
-            if (c != client) {
-                if (send(c->client_socket, buf, NAMESIZE+len+1, 0) == -1)
-                    perror("send");
-            }
+        //pthread_mutex_lock(&historyLock);
+
+        if (historyIndex == MSGHISTORY) {
+            printf("server ran out of memory for history\n");
+            exit(1);
         }
+        
+        history[historyIndex].sender = client;
+        strncpy(history[historyIndex].contents, msg, MAXDATASIZE);
+        history[historyIndex].len = len;
+        historyIndex++;
+
+        send_data();
+        
+        //pthread_mutex_unlock(&historyLock);
     }
     printf("%s exited the chat\n", client->name);
     if (client->prev != NULL) client->prev->next = client->next;
@@ -92,13 +124,14 @@ void* handle_client(void* arg) {
     client->name[client->namelen] = '\0';
 
     client->client_socket = client_socket;
+    client->historyIndex = 0;
     client->prev = NULL;
     client->next = clients;
     if (clients != NULL) clients->prev = client;
     clients = client;
 
     printf("%s joined the chat\n", client->name);
-
+    send_data();
     pthread_t client_thread;
     pthread_create(&client_thread, NULL, recv_data, client);
     pthread_join(client_thread, NULL);
@@ -173,6 +206,8 @@ int main(void) {
     system("clear");
     printf("server: waiting for connections...\n");
 
+    pthread_mutex_init(&historyLock, NULL);
+
     while (1) {
         client_addr_size = sizeof(client_addr);
         client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_addr_size);
@@ -187,4 +222,6 @@ int main(void) {
         int arg = client_socket;
         pthread_create(&client_thread, NULL, handle_client, &arg);
     }
+
+    pthread_mutex_destroy(&historyLock);
 }

@@ -9,7 +9,7 @@
 
 #define NAMESIZE 128
 
-#define MSGHISTORY 50
+#define MSGHISTORY 1024
 
 #endif // !PARAMS_H
 #define PARAMS_H
