@@ -61,7 +61,7 @@ void send_data(void) {
     char buf[NAMESIZE+MAXDATASIZE];
     for (struct Client* c = clients; c != NULL; c = c->next) {
         for (int i = c->historyIndex; i < historyIndex; i++) {
-            printf("debug: c = %s; msg = %s\n", c->name, history[i].contents);
+            //printf("debug: c = %s; msg = %s\n", c->name, history[i].contents);
             if (history[i].sender == c) continue;
             //memset(buf, '\0', sizeof(buf));
             strncpy(buf, history[i].sender->name, NAMESIZE);
@@ -87,7 +87,7 @@ void* recv_data(void* arg) {
         msg[len] = '\0';
         printf("%s: %s\n", client->name, msg);
 
-        //pthread_mutex_lock(&historyLock);
+        pthread_mutex_lock(&historyLock);
 
         if (historyIndex == MSGHISTORY) {
             printf("server ran out of memory for history\n");
@@ -101,7 +101,7 @@ void* recv_data(void* arg) {
 
         send_data();
         
-        //pthread_mutex_unlock(&historyLock);
+        pthread_mutex_unlock(&historyLock);
     }
     printf("%s exited the chat\n", client->name);
     if (client->prev != NULL) client->prev->next = client->next;
@@ -131,7 +131,11 @@ void* handle_client(void* arg) {
     clients = client;
 
     printf("%s joined the chat\n", client->name);
+
+    pthread_mutex_lock(&historyLock);
     send_data();
+    pthread_mutex_unlock(&historyLock);
+
     pthread_t client_thread;
     pthread_create(&client_thread, NULL, recv_data, client);
     pthread_join(client_thread, NULL);
