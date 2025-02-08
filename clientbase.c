@@ -95,15 +95,25 @@ void init_connect(char *server_ip) {
 
 void* recv_data(void* arg) {
     Packet packet;
-    int len;
+    char buffer[sizeof(packet)];
     while (done == 0) {
-        len = recv(server_socket, &packet, sizeof(packet), 0);
-        if (len == -1) {
-            if (done > 0) break;
-            perror("recv");
-            exit(1);
+        int offset = 0;
+        while (offset < sizeof(buffer)) {
+            int count = recv(server_socket, buffer+offset, sizeof(buffer)-offset, 0);
+            if (count == -1) {
+                if (done > 0) break;
+                perror("recv");
+                exit(1);
+            }
+            if (count == 0) {
+                done = 1;
+                break;
+            }
+            offset += count;
         }
-        if (len == 0) break;
+        if (done > 0) break;
+
+        memcpy(&packet, buffer, sizeof(packet));
 
         packet.index = ntohl(packet.index);
         if (packet.index >= MSGHISTORY) {
