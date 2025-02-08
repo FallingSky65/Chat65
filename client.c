@@ -1,34 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <pthread.h>
-
-#include "params.h"
-
-char name[NAMESIZE];
-int done = 0;
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
+#include "clientbase.c"
 
 void* send_data(void* arg) {
     char buf[MAXDATASIZE]; buf[MAXDATASIZE-1] = '\0';
     int len;
-    int server_socket = *(int*)arg;
     while (1){
         printf("%s: ", name);
         if (fgets(buf, MAXDATASIZE-1, stdin) == NULL) continue;
@@ -55,7 +29,6 @@ void* send_data(void* arg) {
 void* recv_data(void* arg) {
     char buf[NAMESIZE+MAXDATASIZE];
     int len;
-    int server_socket = *(int*)arg;
     while (1){
         len = recv(server_socket, buf, NAMESIZE+MAXDATASIZE-1, 0);
         if (len == -1) {
@@ -88,9 +61,10 @@ void* recv_data(void* arg) {
     return NULL;
 }
 
+
+
 int main(int argc, char *argv[])
 {
-    int server_socket;  
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];

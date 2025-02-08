@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <pthread.h>
 
-#include "params.h"
+#include "packet.h"
 
 struct Client;
 struct Client {
@@ -58,15 +58,18 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 void send_data(void) {
-    char buf[NAMESIZE+MAXDATASIZE];
+    Packet packet;
     for (struct Client* c = clients; c != NULL; c = c->next) {
         for (int i = c->historyIndex; i < historyIndex; i++) {
             //printf("debug: c = %s; msg = %s\n", c->name, history[i].contents);
-            if (history[i].sender == c) continue;
+            //if (history[i].sender == c) continue;
+            packet.index = htonl(i);
+            memcpy(packet.sender, history[i].sender->name, NAMESIZE);
+            memcpy(packet.message, history[i].contents, MAXDATASIZE);
             //memset(buf, '\0', sizeof(buf));
-            strncpy(buf, history[i].sender->name, NAMESIZE);
-            strncpy(buf+NAMESIZE, history[i].contents, MAXDATASIZE);
-            if (send(c->client_socket, buf, NAMESIZE+history[i].len, 0) <= 0)
+            //strncpy(buf, history[i].sender->name, NAMESIZE);
+            //strncpy(buf+NAMESIZE, history[i].contents, MAXDATASIZE);
+            if (send(c->client_socket, &packet, sizeof(packet), 0) <= 0)
                 perror("send");
         }
         c->historyIndex = historyIndex;
@@ -85,7 +88,7 @@ void* recv_data(void* arg) {
         }
         if (len == 0) break;
         msg[len] = '\0';
-        printf("%s: %s", client->name, msg);
+        printf("%s: %s\n", client->name, msg);
 
         pthread_mutex_lock(&historyLock);
 
