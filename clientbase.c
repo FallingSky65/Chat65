@@ -96,9 +96,10 @@ void init_connect(char *server_ip) {
 void* recv_data(void* arg) {
     Packet packet;
     int len;
-    while (1) {
+    while (done == 0) {
         len = recv(server_socket, &packet, sizeof(packet), 0);
         if (len == -1) {
+            if (done > 0) break;
             perror("recv");
             exit(1);
         }
@@ -119,7 +120,7 @@ void* recv_data(void* arg) {
         history[packet.index].status = 1;
         historyUpdated = 1;
     }
-    close(server_socket);
+    done = 1;
     pthread_exit(NULL);
     return NULL;
 }

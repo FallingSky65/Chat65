@@ -16,6 +16,7 @@
 
 struct Client;
 struct Client {
+    int status;
     int client_socket;
     char name[NAMESIZE];
     int namelen;
@@ -60,6 +61,7 @@ void *get_in_addr(struct sockaddr *sa)
 void send_data(void) {
     Packet packet;
     for (struct Client* c = clients; c != NULL; c = c->next) {
+        if (c->status == 0) continue;
         for (int i = c->historyIndex; i < historyIndex; i++) {
             //printf("debug: c = %s; msg = %s\n", c->name, history[i].contents);
             //if (history[i].sender == c) continue;
@@ -88,7 +90,7 @@ void* recv_data(void* arg) {
         }
         if (len == 0) break;
         msg[len] = '\0';
-        printf("%s: %s\n", client->name, msg);
+        printf("%d: %s: %s\n", historyIndex, client->name, msg);
 
         pthread_mutex_lock(&historyLock);
 
@@ -107,17 +109,15 @@ void* recv_data(void* arg) {
         pthread_mutex_unlock(&historyLock);
     }
     printf("%s exited the chat\n", client->name);
-    if (client->prev != NULL) client->prev->next = client->next;
-    if (client->next != NULL) client->next->prev = client->prev;
     close(client->client_socket);
-    free(client);
+    client->status = 0;
     pthread_exit(NULL);
     return NULL;
 }
 
 void* handle_client(void* arg) {
     int client_socket = *(int*)arg;
-    struct Client* client = (struct Client*)malloc(sizeof(struct Client*));
+    struct Client* client = (struct Client*)malloc(sizeof(struct Client));
     
     client->namelen = recv(client_socket, client->name, NAMESIZE-1, 0);
     if (client->namelen <= 0) {
@@ -126,6 +126,7 @@ void* handle_client(void* arg) {
     }
     client->name[client->namelen] = '\0';
 
+    client->status = 1;
     client->client_socket = client_socket;
     client->historyIndex = 0;
     client->prev = NULL;

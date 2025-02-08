@@ -20,7 +20,7 @@ pthread_mutex_t lock;
 pthread_t print_chats_thread;
 
 void* print_chats(void* arg) {
-    while (1) {
+    while (done == 0) {
         if (historyUpdated == 0) continue;
         pthread_mutex_lock(&lock);
         int top = screen_height - 2;
@@ -37,6 +37,9 @@ void* print_chats(void* arg) {
         pthread_mutex_unlock(&lock);
         historyUpdated = 0;
     }
+    done = 1;
+    pthread_exit(NULL);
+    return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -54,6 +57,8 @@ int main(int argc, char *argv[]) {
     //raw();
     noecho();
 
+    clear();
+
     getmaxyx(stdscr, screen_height, screen_width);
 
     char buf[MAXDATASIZE];
@@ -66,7 +71,7 @@ int main(int argc, char *argv[]) {
     pthread_create(&recv_thread, NULL, recv_data, NULL);
     pthread_create(&print_chats_thread, NULL, print_chats, NULL);
     
-while ((ch = getch()) != 27) { // while ch != escape
+    while ((ch = getch()) != 27) { // while ch != escape
         if (32 <= ch && ch < 127 && bufi + 1 < MAXDATASIZE) { // while SPACE <= ch < DEL
             if (bufi + 1 >= MAXDATASIZE) {
                 beep();
@@ -98,10 +103,15 @@ while ((ch = getch()) != 27) { // while ch != escape
 
         pthread_mutex_unlock(&lock);
     }
+    done = 1;
+    close(server_socket);
+    pthread_join(print_chats_thread, NULL);
+    pthread_join(recv_thread, NULL);
+    pthread_mutex_destroy(&lock);
+    
     endwin();
 
-    close(server_socket);
-    pthread_mutex_destroy(&lock);
+    printf("exited successfully\n");
 
     return 0;
 }
