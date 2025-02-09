@@ -67,6 +67,7 @@ int main(int argc, char *argv[]) {
     move(screen_height-2, 0);
     hline('-', screen_width);
     move(screen_height-1, 0);
+    refresh();
 
     pthread_create(&recv_thread, NULL, recv_data, NULL);
     pthread_create(&print_chats_thread, NULL, print_chats, NULL);
