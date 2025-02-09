@@ -165,7 +165,7 @@ int main(void) {
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if ((ret_val = getaddrinfo(NULL, PORT, &hints, &server_info)) != 0) {
+    if ((ret_val = getaddrinfo(NULL, "3490", &hints, &server_info)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret_val));
         return 1;
     }

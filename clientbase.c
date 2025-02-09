@@ -41,7 +41,7 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void init_connect(char *server_ip) {
+void init_connect(char *server_ip, char *port) {
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
@@ -50,7 +50,7 @@ void init_connect(char *server_ip) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(server_ip, PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(server_ip, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }

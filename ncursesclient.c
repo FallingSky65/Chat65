@@ -43,11 +43,11 @@ void* print_chats(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr,"usage: client hostname\n");
+    if (argc != 3) {
+        fprintf(stderr,"usage: client hostname port\n");
         exit(1);
     }
-    init_connect(argv[1]);
+    init_connect(argv[1], argv[2]);
     int ch;
 
     pthread_mutex_init(&lock, NULL);
